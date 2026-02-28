@@ -8,12 +8,9 @@ import {
   type BuildPlanResult,
 } from "@templater/core";
 
-import { promptQuestions } from "../ui/prompt";
+import { promptQuestions } from "../ui/prompt.js";
 
-export async function runCreateCommand(
-  templatePath: string,
-  targetDir: string,
-): Promise<void> {
+export async function runCreateCommand(templatePath: string, targetDir: string): Promise<void> {
   const resolvedTemplatePath = path.resolve(templatePath);
   const resolvedTargetDir = path.resolve(targetDir);
 
@@ -31,11 +28,7 @@ export async function runCreateCommand(
   printSummary(template.config.name, resolvedTargetDir, plan);
 }
 
-function printSummary(
-  templateName: string,
-  targetDir: string,
-  plan: BuildPlanResult,
-): void {
+function printSummary(templateName: string, targetDir: string, plan: BuildPlanResult): void {
   const writtenFiles = plan.items.filter((item) => item.action === "write").length;
   const copiedFiles = plan.items.filter((item) => item.action === "copy").length;
 

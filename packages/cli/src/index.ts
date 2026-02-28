@@ -1,1 +1,1 @@
-export { runCreateCommand } from "./commands/create";
+export { runCreateCommand } from "./commands/create.js";
