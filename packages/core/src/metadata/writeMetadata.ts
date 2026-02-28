@@ -1,7 +1,7 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 
-import type { ProjectMetadata } from "./types";
+import type { ProjectMetadata } from "./types.js";
 
 const METADATA_DIR_NAME = ".templater";
 const METADATA_FILE_NAME = "meta.json";

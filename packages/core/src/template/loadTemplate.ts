@@ -2,8 +2,8 @@ import { stat } from "node:fs/promises";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 
-import { ConfigLoadError, InvalidTemplateError, TemplateNotFoundError } from "../errors/errors";
-import type { LoadedTemplate, TemplateConfig } from "./types";
+import { ConfigLoadError, InvalidTemplateError, TemplateNotFoundError } from "../errors/errors.js";
+import type { LoadedTemplate, TemplateConfig } from "./types.js";
 
 const TEMPLATE_CONFIG_FILE = "templater.config.ts";
 

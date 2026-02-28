@@ -1,5 +1,4 @@
-import { createInterface } from "node:readline/promises";
-import { stdin as input, stdout as output } from "node:process";
+import { confirm, input, select } from "@inquirer/prompts";
 
 import type {
   ConfirmQuestion,
@@ -7,9 +6,28 @@ import type {
   Question,
   SelectQuestion,
 } from "@templater/core";
+import { formatLogLine } from "./format.js";
+
+type ValidationResult = boolean | string | void;
+type QuestionValidator<T> = (
+  value: T,
+  answers: Readonly<Record<string, unknown>>,
+) => ValidationResult | Promise<ValidationResult>;
+
+type PromptQuestion =
+  | (InputQuestion & { readonly validate?: QuestionValidator<string> })
+  | (SelectQuestion & { readonly validate?: QuestionValidator<string> })
+  | (ConfirmQuestion & { readonly validate?: QuestionValidator<boolean> });
 
 export interface PromptOptions {
   readonly yes?: boolean;
+}
+
+export class PromptCancelledError extends Error {
+  constructor() {
+    super("Prompt cancelled.");
+    this.name = "PromptCancelledError";
+  }
 }
 
 export async function promptQuestions(
@@ -20,131 +38,188 @@ export async function promptQuestions(
     return {};
   }
 
-  if (options.yes) {
-    return buildDefaultAnswers(questions);
-  }
-
-  const answers: Record<string, unknown> = {};
-  const rl = createInterface({ input, output });
-
-  try {
-    for (const question of questions) {
-      answers[question.name] = await askQuestion(rl, question);
-    }
-  } finally {
-    rl.close();
-  }
-
-  return answers;
-}
-
-function buildDefaultAnswers(questions: readonly Question[]): Record<string, unknown> {
   const answers: Record<string, unknown> = {};
 
   for (const question of questions) {
-    answers[question.name] = getDefaultAnswer(question);
+    const promptQuestion = question as PromptQuestion;
+
+    if (options.yes) {
+      const autoAnswer = await tryGetAutoAnswer(promptQuestion, answers);
+
+      if (autoAnswer.used) {
+        answers[promptQuestion.name] = autoAnswer.value;
+        continue;
+      }
+    }
+
+    answers[promptQuestion.name] = await askQuestion(promptQuestion, answers);
   }
 
   return answers;
 }
 
-function getDefaultAnswer(question: Question): unknown {
-  switch (question.type) {
-    case "input":
-      return question.default ?? "";
-    case "select":
-      return question.default ?? question.options[0]?.value ?? "";
-    case "confirm":
-      return question.default ?? false;
-    default:
-      return assertNever(question);
-  }
-}
-
 async function askQuestion(
-  rl: ReturnType<typeof createInterface>,
-  question: Question,
+  question: PromptQuestion,
+  answers: Readonly<Record<string, unknown>>,
 ): Promise<unknown> {
-  switch (question.type) {
-    case "input":
-      return askInputQuestion(rl, question);
-    case "select":
-      return askSelectQuestion(rl, question);
-    case "confirm":
-      return askConfirmQuestion(rl, question);
-    default:
-      return assertNever(question);
+  try {
+    switch (question.type) {
+      case "input":
+        return askInputQuestion(question, answers);
+      case "select":
+        return askSelectQuestion(question, answers);
+      case "confirm":
+        return askConfirmQuestion(question, answers);
+      default:
+        return assertNever(question);
+    }
+  } catch (error) {
+    if (isPromptCancellation(error)) {
+      throw new PromptCancelledError();
+    }
+
+    throw error;
   }
 }
 
 async function askInputQuestion(
-  rl: ReturnType<typeof createInterface>,
-  question: InputQuestion,
+  question: InputQuestion & { readonly validate?: QuestionValidator<string> },
+  answers: Readonly<Record<string, unknown>>,
 ): Promise<string> {
-  const suffix = question.default !== undefined ? ` [${question.default}]` : "";
-  const answer = await rl.question(`${question.message}${suffix}: `);
-
-  if (answer.length === 0 && question.default !== undefined) {
-    return question.default;
-  }
-
-  return answer;
+  return input({
+    message: question.message,
+    default: question.default,
+    validate: (value) => runValidation(question.validate, value, answers),
+  });
 }
 
 async function askSelectQuestion(
-  rl: ReturnType<typeof createInterface>,
-  question: SelectQuestion,
+  question: SelectQuestion & { readonly validate?: QuestionValidator<string> },
+  answers: Readonly<Record<string, unknown>>,
 ): Promise<string> {
-  const optionList = question.options
-    .map((option, index) => `${index + 1}. ${option.label}`)
-    .join("\n");
-
-  const defaultIndex = question.default
-    ? question.options.findIndex((option) => option.value === question.default)
-    : -1;
-  const suffix = defaultIndex >= 0 ? ` [${defaultIndex + 1}]` : "";
-
   while (true) {
-    const answer = await rl.question(`${question.message}${suffix}\n${optionList}\n> `);
-    const normalizedAnswer =
-      answer.length === 0 && defaultIndex >= 0 ? String(defaultIndex + 1) : answer;
-    const selectedIndex = Number.parseInt(normalizedAnswer, 10) - 1;
-    const selectedOption = question.options[selectedIndex];
+    const value = await select({
+      message: question.message,
+      default: question.default,
+      choices: question.options.map((option) => ({
+        name: option.label,
+        value: option.value,
+      })),
+    });
+    const validationResult = await runValidation(question.validate, value, answers);
 
-    if (selectedOption) {
-      return selectedOption.value;
+    if (validationResult === true) {
+      return value;
     }
 
-    output.write("Select one of the listed options by number.\n");
+    writePromptError(validationResult);
   }
 }
 
 async function askConfirmQuestion(
-  rl: ReturnType<typeof createInterface>,
-  question: ConfirmQuestion,
+  question: ConfirmQuestion & { readonly validate?: QuestionValidator<boolean> },
+  answers: Readonly<Record<string, unknown>>,
 ): Promise<boolean> {
-  const defaultValue = question.default ?? false;
-  const suffix = defaultValue ? " [Y/n]" : " [y/N]";
-
   while (true) {
-    const answer = (await rl.question(`${question.message}${suffix}: `))
-      .trim()
-      .toLowerCase();
+    const value = await confirm({
+      message: question.message,
+      default: question.default ?? false,
+      theme: {
+        prefix: "",
+      },
+      transformer: (answer) => (answer ? "y" : "n"),
+    });
+    const validationResult = await runValidation(question.validate, value, answers);
 
-    if (answer.length === 0) {
-      return defaultValue;
+    if (validationResult === true) {
+      return value;
     }
 
-    if (answer === "y" || answer === "yes") {
-      return true;
-    }
-
-    if (answer === "n" || answer === "no") {
-      return false;
-    }
-
-    output.write("Enter y or n.\n");
+    writePromptError(validationResult);
   }
+}
+
+async function tryGetAutoAnswer(
+  question: PromptQuestion,
+  answers: Readonly<Record<string, unknown>>,
+): Promise<{ readonly used: boolean; readonly value?: unknown }> {
+  const candidate = getAutoAnswer(question);
+
+  if (!candidate.used) {
+    return candidate;
+  }
+
+  const validationResult = await runValidation(
+    question.validate as QuestionValidator<unknown> | undefined,
+    candidate.value,
+    answers,
+  );
+
+  if (validationResult === true) {
+    return candidate;
+  }
+
+  return { used: false };
+}
+
+function getAutoAnswer(
+  question: PromptQuestion,
+): { readonly used: boolean; readonly value?: unknown } {
+  switch (question.type) {
+    case "input":
+      if (question.default !== undefined) {
+        return { used: true, value: question.default };
+      }
+
+      return { used: false };
+    case "select":
+      return {
+        used: true,
+        value: question.default ?? question.options[0]?.value ?? "",
+      };
+    case "confirm":
+      return {
+        used: true,
+        value: question.default ?? false,
+      };
+    default:
+      return assertNever(question);
+  }
+}
+
+async function runValidation<T>(
+  validate: QuestionValidator<T> | undefined,
+  value: T,
+  answers: Readonly<Record<string, unknown>>,
+): Promise<true | string> {
+  if (!validate) {
+    return true;
+  }
+
+  const result = await validate(value, answers);
+
+  if (result === undefined || result === true) {
+    return true;
+  }
+
+  if (result === false) {
+    return "Invalid value.";
+  }
+
+  return result;
+}
+
+function isPromptCancellation(error: unknown): boolean {
+  return (
+    error instanceof Error &&
+    (error.name === "ExitPromptError" ||
+      error.name === "AbortPromptError" ||
+      error.name === "PromptCancelledError")
+  );
+}
+
+function writePromptError(message: string): void {
+  process.stderr.write(`${formatLogLine("error", message)}\n`);
 }
 
 function assertNever(value: never): never {

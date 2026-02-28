@@ -1,8 +1,8 @@
 import { copyFile, mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 
-import type { BuildPlanResult, PlanItem } from "../plan/types";
-import { resolveConflict, type WritePolicy } from "./policies";
+import type { BuildPlanResult, PlanItem } from "../plan/types.js";
+import { resolveConflict, type WritePolicy } from "./policies.js";
 
 export async function writePlan(
   plan: BuildPlanResult,

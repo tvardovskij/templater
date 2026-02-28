@@ -7,6 +7,8 @@ import { Command, CommanderError, InvalidArgumentError } from "commander";
 import type { WritePolicy } from "@templater/core";
 
 import type { CreateCommandOptions } from "./commands/create.js";
+import { createLogger } from "./ui/logger.js";
+import { PromptCancelledError } from "./ui/prompt.js";
 
 const packageJson = JSON.parse(
   readFileSync(new URL("../package.json", import.meta.url), "utf8"),
@@ -63,7 +65,8 @@ async function main(): Promise<void> {
     )
     .action(async (templatePath: string, targetDir: string, options: CreateCommandOptions) => {
       const { runCreateCommand } = await import("./commands/create.js");
-      await runCreateCommand(templatePath, targetDir, options);
+      const logger = createLogger({ verbose: options.verbose });
+      await runCreateCommand(templatePath, targetDir, options, logger);
     });
 
   try {
@@ -82,22 +85,35 @@ function parsePolicy(value: string): WritePolicy {
 }
 
 function handleCliError(error: unknown, verbose: boolean): never | void {
+  const logger = createLogger({ verbose });
+
   if (error instanceof CommanderError) {
     if (error.exitCode === 0) {
       return;
     }
 
+    logger.error(error.message);
+    logger.suggestion("Run with --help to see available commands and options.");
     process.exitCode = error.exitCode;
     return;
   }
 
   if (error instanceof Error) {
-    console.error(`Error: ${error.message}`);
+    if (error instanceof PromptCancelledError) {
+      logger.warn("Prompt cancelled.");
+      process.exitCode = 130;
+      return;
+    }
+
+    logger.error(error.message);
     if (verbose && error.stack) {
-      console.error(error.stack);
+      logger.debug(error.stack);
+    } else {
+      logger.suggestion("Run with --verbose for details.");
     }
   } else {
-    console.error(`Error: ${String(error)}`);
+    logger.error(String(error));
+    logger.suggestion("Run with --verbose for details.");
   }
 
   process.exitCode = 1;

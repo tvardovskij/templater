@@ -1,10 +1,10 @@
 import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 
-import { renderText } from "../render/renderText";
-import { shouldRender } from "../render/shouldRender";
-import type { LoadedTemplate } from "../template/types";
-import type { BuildPlanResult, PlanItem } from "./types";
+import { renderText } from "../render/renderText.js";
+import { shouldRender } from "../render/shouldRender.js";
+import type { LoadedTemplate } from "../template/types.js";
+import type { BuildPlanResult, PlanItem } from "./types.js";
 
 const DEFAULT_IGNORED_NAMES = new Set(["node_modules", "dist", ".git", ".templater"]);
 
