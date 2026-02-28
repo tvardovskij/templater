@@ -1,0 +1,13 @@
+{
+  "name": "templater-vscode",
+  "version": "0.0.0",
+  "private": true,
+  "main": "./dist/extension.js",
+  "scripts": {
+    "build": "tsc -b",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@templater/core": "workspace:*"
+  }
+}

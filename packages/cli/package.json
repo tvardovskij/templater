@@ -1,0 +1,17 @@
+{
+  "name": "templater",
+  "version": "0.0.0",
+  "type": "module",
+  "bin": {
+    "templater": "dist/index.js"
+  },
+  "dependencies": {
+    "@templater/core": "workspace:*"
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "clean": "rm -rf dist",
+    "lint": "eslint src --ext .ts",
+    "test": "echo \"no tests yet\""
+  }
+}
