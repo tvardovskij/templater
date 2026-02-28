@@ -6,7 +6,8 @@
     "templater": "dist/bin.js"
   },
   "dependencies": {
-    "@templater/core": "workspace:*"
+    "@templater/core": "workspace:*",
+    "commander": "^14.0.1"
   },
   "scripts": {
     "build": "tsc -b",

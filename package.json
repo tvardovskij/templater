@@ -7,7 +7,8 @@
     "dev": "pnpm -r dev",
     "lint": "pnpm -r lint",
     "test": "pnpm -r test",
-    "clean": "pnpm -r clean"
+    "clean": "pnpm -r clean",
+    "cli": "node packages/cli/dist/bin.js"
   },
   "keywords": [],
   "author": "",

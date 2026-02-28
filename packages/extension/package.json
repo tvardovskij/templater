@@ -9,5 +9,11 @@
   },
   "dependencies": {
     "@templater/core": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.109.0"
+  },
+  "engines": {
+    "vscode": "^1.109.0"
   }
 }

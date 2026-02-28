@@ -8,11 +8,20 @@ import type {
   SelectQuestion,
 } from "@templater/core";
 
+export interface PromptOptions {
+  readonly yes?: boolean;
+}
+
 export async function promptQuestions(
   questions: readonly Question[],
+  options: PromptOptions = {},
 ): Promise<Record<string, unknown>> {
   if (questions.length === 0) {
     return {};
+  }
+
+  if (options.yes) {
+    return buildDefaultAnswers(questions);
   }
 
   const answers: Record<string, unknown> = {};
@@ -27,6 +36,29 @@ export async function promptQuestions(
   }
 
   return answers;
+}
+
+function buildDefaultAnswers(questions: readonly Question[]): Record<string, unknown> {
+  const answers: Record<string, unknown> = {};
+
+  for (const question of questions) {
+    answers[question.name] = getDefaultAnswer(question);
+  }
+
+  return answers;
+}
+
+function getDefaultAnswer(question: Question): unknown {
+  switch (question.type) {
+    case "input":
+      return question.default ?? "";
+    case "select":
+      return question.default ?? question.options[0]?.value ?? "";
+    case "confirm":
+      return question.default ?? false;
+    default:
+      return assertNever(question);
+  }
 }
 
 async function askQuestion(
