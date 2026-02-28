@@ -12,5 +12,8 @@
     "clean": "rm -rf dist",
     "lint": "eslint src --ext .ts",
     "test": "echo \"no tests yet\""
+  },
+  "dependencies": {
+    "handlebars": "^4.7.8"
   }
 }
