@@ -6,6 +6,7 @@ export { shouldRender } from "./render/shouldRender";
 export { buildPlan } from "./plan/buildPlan";
 export { resolveConflict } from "./fs/policies";
 export { writePlan } from "./fs/writePlan";
+export { writeMetadata } from "./metadata/writeMetadata";
 
 export type {
   ConfirmQuestion,
@@ -21,5 +22,6 @@ export type {
   TemplateConfig,
 } from "./template/types";
 export type { BuildPlanResult, PlanItem } from "./plan/types";
+export type { ProjectMetadata } from "./metadata/types";
 export type { BuildPlanGlobs } from "./plan/buildPlan";
 export type { WritePolicy } from "./fs/policies";

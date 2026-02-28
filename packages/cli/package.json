@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "type": "module",
   "bin": {
-    "templater": "dist/index.js"
+    "templater": "dist/bin.js"
   },
   "dependencies": {
     "@templater/core": "workspace:*"
