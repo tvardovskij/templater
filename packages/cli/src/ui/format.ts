@@ -40,3 +40,25 @@ export function formatRelativePath(targetPath: string, cwd: string = process.cwd
 
   return relativePath.length > 0 ? relativePath : ".";
 }
+
+export function formatTable(
+  headers: readonly string[],
+  rows: readonly (readonly string[])[],
+): string {
+  const widths = headers.map((header, index) =>
+    Math.max(
+      header.length,
+      ...rows.map((row) => (row[index] ?? "").length),
+    ),
+  );
+
+  const headerLine = headers
+    .map((header, index) => header.padEnd(widths[index] ?? header.length))
+    .join("  ");
+  const separatorLine = widths.map((width) => "-".repeat(width)).join("  ");
+  const rowLines = rows.map((row) =>
+    row.map((cell, index) => cell.padEnd(widths[index] ?? cell.length)).join("  "),
+  );
+
+  return [headerLine, separatorLine, ...rowLines].join("\n");
+}

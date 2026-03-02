@@ -7,6 +7,7 @@ export interface Logger {
   error(message: string): void;
   debug(message: string): void;
   suggestion(message: string): void;
+  plain(message: string): void;
 }
 
 export function createLogger(options: { verbose: boolean }): Logger {
@@ -32,6 +33,9 @@ export function createLogger(options: { verbose: boolean }): Logger {
     },
     suggestion(message) {
       writeStderr(formatSuggestion(message));
+    },
+    plain(message) {
+      writeStdout(message);
     },
   };
 }

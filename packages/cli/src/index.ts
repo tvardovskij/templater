@@ -1,5 +1,11 @@
 export { runCreateCommand } from "./commands/create.js";
 export {
+  runTemplatesAddCommand,
+  runTemplatesListCommand,
+  runTemplatesRemoveCommand,
+  type TemplatesAddCommandOptions,
+} from "./commands/templates.js";
+export {
   addTemplate,
   getTemplate,
   listTemplates,
